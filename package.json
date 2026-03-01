@@ -1,6 +1,6 @@
 {
   "name": "@mixxtor/adonisjs-lucid-cursor",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Lucid cursor pagination for AdonisJS",
   "engines": {
     "node": ">=20.6.0"
@@ -114,12 +114,14 @@
   },
   "release-it": {
     "git": {
-      "requireCleanWorkingDir": true,
-      "requireUpstream": true,
-      "commitMessage": "chore(release): ${version}",
-      "tagAnnotation": "v${version}",
+      "commitMessage": "chore: release v${version}",
+      "tagName": "v${version}",
+      "requireCleanWorkingDir": false,
+      "requireUpstream": false,
       "push": true,
-      "tagName": "v${version}"
+      "pushArgs": [
+        "--follow-tags"
+      ]
     },
     "github": {
       "release": true,
@@ -131,13 +133,70 @@
     },
     "npm": {
       "publish": true,
-      "skipChecks": true
+      "publishPath": ".",
+      "access": "public",
+      "otp": false
+    },
+    "hooks": {
+      "before:init": [
+        "npm run lint",
+        "npm run typecheck"
+      ],
+      "after:bump": [
+        "npm run build"
+      ],
+      "before:release": [
+        "npm test"
+      ],
+      "after:release": [
+        "echo 🎉 Release ${version} completed successfully!"
+      ]
     },
     "plugins": {
       "@release-it/conventional-changelog": {
         "preset": {
-          "name": "angular"
-        }
+          "name": "conventionalcommits",
+          "types": [
+            {
+              "type": "feat",
+              "section": "✨ Features"
+            },
+            {
+              "type": "fix",
+              "section": "🐛 Bug Fixes"
+            },
+            {
+              "type": "perf",
+              "section": "⚡ Performance Improvements"
+            },
+            {
+              "type": "refactor",
+              "section": "♻️ Code Refactoring"
+            },
+            {
+              "type": "docs",
+              "section": "📚 Documentation"
+            },
+            {
+              "type": "test",
+              "section": "🧪 Tests"
+            },
+            {
+              "type": "build",
+              "section": "🏗️ Build System"
+            },
+            {
+              "type": "ci",
+              "section": "👷 CI/CD"
+            },
+            {
+              "type": "chore",
+              "section": "🔧 Maintenance"
+            }
+          ]
+        },
+        "infile": "CHANGELOG.md",
+        "header": "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n"
       }
     }
   },
