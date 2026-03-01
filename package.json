@@ -1,6 +1,6 @@
 {
   "name": "@mixxtor/adonisjs-cursor-pagination",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Cursor-based pagination for AdonisJS Lucid ORM",
   "engines": {
     "node": ">=20.6.0"

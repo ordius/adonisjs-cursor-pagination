@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [1.0.2](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.1...v1.0.2) (2026-03-01)
+
+### 🔧 Maintenance
+
+* update PostgreSQL test database URL and Node.js version requirement in README & update package.json to temporary support adonisjs v7 ([96371a5](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/96371a506a76e289ec84d48ae7546483dafb7a00))
+
 ## [1.0.1](https://github.com/mixxtor/adonisjs-lucid-cursor/compare/v1.0.0...v1.0.1) (2026-03-01)
 
 ### 🐛 Bug Fixes
