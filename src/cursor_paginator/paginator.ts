@@ -7,7 +7,6 @@
  * file that was distributed with this source code.
  */
 
-import { stringify } from 'qs'
 import type {
   CherryPick,
   LucidRow,
@@ -240,7 +239,9 @@ export class CursorPaginator<Result extends LucidRow = LucidRow>
    * Returns url for a given page. Doesn't validates the integrity of the page
    */
   getUrl(cursor: string): string {
-    const qs = stringify(Object.assign({}, this.qs, { cursor: cursor ?? this.currentCursor?.data }))
+    const qs = new URLSearchParams(
+      Object.assign({}, this.qs, { cursor: cursor ?? this.currentCursor?.data })
+    ).toString()
     return `${this.url}?${qs}`
   }
 
