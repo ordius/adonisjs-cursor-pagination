@@ -1,4 +1,4 @@
-import { ApplicationService } from '@adonisjs/core/types'
+import { type ApplicationService } from '@adonisjs/core/types'
 import { registerCursorPaginationMacro } from '../src/cursor_paginator/macro.js'
 
 // Side-effect import to ensure type augmentations are included when provider is imported

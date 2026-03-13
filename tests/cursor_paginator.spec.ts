@@ -8,7 +8,7 @@
  */
 
 import { test } from '@japa/runner'
-import { Database } from '@adonisjs/lucid/database'
+import { type Database } from '@adonisjs/lucid/database'
 import {
   createDatabase,
   createTables,

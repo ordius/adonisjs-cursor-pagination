@@ -8,7 +8,7 @@
  */
 
 import { BaseModel, column } from '@adonisjs/lucid/orm'
-import { DateTime } from 'luxon'
+import { type DateTime } from 'luxon'
 
 /**
  * Test model for cursor pagination tests
