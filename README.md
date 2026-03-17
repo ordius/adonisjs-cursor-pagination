@@ -32,6 +32,7 @@ User.query().cursorPaginate({ perPage: 10 })
 ## When to use offset pagination instead?
 
 If you need:
+
 - Random page access (e.g. go to page 42)
 - SEO-friendly numbered pagination
 
@@ -77,9 +78,7 @@ export default defineConfig({
 import User from '#models/user'
 
 // First page (recommended object-based API)
-const firstPage = await User.query()
-  .orderBy('id', 'asc')
-  .cursorPaginate({ perPage: 10 })
+const firstPage = await User.query().orderBy('id', 'asc').cursorPaginate({ perPage: 10 })
 
 // Get next page using cursor
 const nextCursor = firstPage.getNextCursor()
@@ -99,9 +98,7 @@ const backToFirst = await User.query()
 The paginator returns a structured response suitable for API endpoints:
 
 ```typescript
-const posts = await Post.query()
-  .orderBy('created_at', 'desc')
-  .cursorPaginate({ perPage: 10 })
+const posts = await Post.query().orderBy('created_at', 'desc').cursorPaginate({ perPage: 10 })
 
 // Get JSON response with meta information
 const response = posts.toJSON()
@@ -110,6 +107,7 @@ const serialized = posts.serialize()
 ```
 
 Response structure:
+
 ```json
 {
   "meta": {
@@ -129,14 +127,13 @@ Response structure:
 You can specify custom columns to order by:
 
 ```typescript
-const posts = await Post.query()
-  .cursorPaginate({
-    perPage: 10,
-    orderBy: {
-      views: 'desc',
-      id: 'asc'
-    }
-  })
+const posts = await Post.query().cursorPaginate({
+  perPage: 10,
+  orderBy: {
+    views: 'desc',
+    id: 'asc',
+  },
+})
 ```
 
 ### Without Total Count
@@ -144,12 +141,10 @@ const posts = await Post.query()
 For better performance on large datasets, skip fetching the total count:
 
 ```typescript
-const posts = await Post.query()
-  .orderBy('id', 'asc')
-  .cursorPaginate({
-    perPage: 10,
-    withTotal: false
-  })
+const posts = await Post.query().orderBy('id', 'asc').cursorPaginate({
+  perPage: 10,
+  withTotal: false,
+})
 
 // posts.total will be NaN
 // posts.hasTotal will be false
@@ -162,22 +157,15 @@ Works with raw database queries too:
 ```typescript
 import db from '@adonisjs/lucid/services/db'
 
-const results = await db
-  .from('posts')
-  .orderBy('id', 'asc')
-  .cursorPaginate({ perPage: 10 })
+const results = await db.from('posts').orderBy('id', 'asc').cursorPaginate({ perPage: 10 })
 ```
 
 ### Setting Base URL and Query Strings
 
 ```typescript
-const posts = await Post.query()
-  .orderBy('id', 'asc')
-  .cursorPaginate({ perPage: 10 })
+const posts = await Post.query().orderBy('id', 'asc').cursorPaginate({ perPage: 10 })
 
-posts
-  .baseUrl('/api/posts')
-  .queryString({ sort: 'id', order: 'asc' })
+posts.baseUrl('/api/posts').queryString({ sort: 'id', order: 'asc' })
 
 // URLs will now include base URL and query params
 // e.g., /api/posts?sort=id&order=asc&cursor=...
@@ -186,19 +174,17 @@ posts
 ### Accessing Results
 
 ```typescript
-const posts = await Post.query()
-  .orderBy('id', 'asc')
-  .cursorPaginate({ perPage: 10 })
+const posts = await Post.query().orderBy('id', 'asc').cursorPaginate({ perPage: 10 })
 
 // Get all items
 posts.items() // or posts.all()
 
 // Check pagination state
-posts.isEmpty         // true if no results
-posts.hasMorePages    // true if there's a next page
-posts.hasPages        // true if there are any results
-posts.total           // total count (if withTotal is true)
-posts.perPage         // items per page
+posts.isEmpty // true if no results
+posts.hasMorePages // true if there's a next page
+posts.hasPages // true if there are any results
+posts.total // total count (if withTotal is true)
+posts.perPage // items per page
 ```
 
 ### Array-like Behavior
@@ -206,9 +192,7 @@ posts.perPage         // items per page
 The paginator extends Array, so you can iterate and use array methods:
 
 ```typescript
-const posts = await Post.query()
-  .orderBy('id', 'asc')
-  .cursorPaginate({ perPage: 10 })
+const posts = await Post.query().orderBy('id', 'asc').cursorPaginate({ perPage: 10 })
 
 // Iterate
 for (const post of posts) {
@@ -232,12 +216,12 @@ cursorPaginate({
 })
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `perPage` | `number` | `10` | Number of items per page |
-| `cursor` | `string \| null` | `null` | Cursor string for pagination (null for first page) |
-| `orderBy` | `object` | `{ primaryKey: 'asc' }` | Columns to order by with direction |
-| `withTotal` | `boolean` | `true` | Include total count in response |
+| Parameter   | Type             | Default                 | Description                                        |
+| ----------- | ---------------- | ----------------------- | -------------------------------------------------- |
+| `perPage`   | `number`         | `10`                    | Number of items per page                           |
+| `cursor`    | `string \| null` | `null`                  | Cursor string for pagination (null for first page) |
+| `orderBy`   | `object`         | `{ primaryKey: 'asc' }` | Columns to order by with direction                 |
+| `withTotal` | `boolean`        | `true`                  | Include total count in response                    |
 
 ### cursorPaginate(perPage, cursor?, options?) — Positional (legacy)
 
@@ -256,31 +240,31 @@ Both signatures are supported for backward compatibility.
 
 ### Paginator Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `items()` | `Result[]` | Get all items |
-| `all()` | `Result[]` | Alias for items() |
-| `getNextCursor()` | `string \| null` | Get cursor for next page |
-| `getPreviousCursor()` | `string \| null` | Get cursor for previous page |
-| `getNextPageUrl()` | `string \| null` | Get URL for next page |
-| `getPreviousPageUrl()` | `string \| null` | Get URL for previous page |
-| `getMeta()` | `object` | Get pagination metadata |
-| `toJSON()` | `object` | Get JSON representation |
-| `serialize(cherryPick?)` | `object` | Serialize model results |
-| `baseUrl(url)` | `this` | Set base URL for pagination links |
-| `queryString(params)` | `this` | Set query string parameters |
+| Method                   | Returns          | Description                       |
+| ------------------------ | ---------------- | --------------------------------- |
+| `items()`                | `Result[]`       | Get all items                     |
+| `all()`                  | `Result[]`       | Alias for items()                 |
+| `getNextCursor()`        | `string \| null` | Get cursor for next page          |
+| `getPreviousCursor()`    | `string \| null` | Get cursor for previous page      |
+| `getNextPageUrl()`       | `string \| null` | Get URL for next page             |
+| `getPreviousPageUrl()`   | `string \| null` | Get URL for previous page         |
+| `getMeta()`              | `object`         | Get pagination metadata           |
+| `toJSON()`               | `object`         | Get JSON representation           |
+| `serialize(cherryPick?)` | `object`         | Serialize model results           |
+| `baseUrl(url)`           | `this`           | Set base URL for pagination links |
+| `queryString(params)`    | `this`           | Set query string parameters       |
 
 ### Paginator Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `isEmpty` | `boolean` | True if no results |
-| `total` | `number` | Total count (NaN if not fetched) |
-| `hasTotal` | `boolean` | True if total is available |
-| `hasPages` | `boolean` | True if there are results |
-| `hasMorePages` | `boolean` | True if there's a next page |
-| `perPage` | `number` | Items per page |
-| `currentPage` | `string \| null` | Current cursor |
+| Property       | Type             | Description                      |
+| -------------- | ---------------- | -------------------------------- |
+| `isEmpty`      | `boolean`        | True if no results               |
+| `total`        | `number`         | Total count (NaN if not fetched) |
+| `hasTotal`     | `boolean`        | True if total is available       |
+| `hasPages`     | `boolean`        | True if there are results        |
+| `hasMorePages` | `boolean`        | True if there's a next page      |
+| `perPage`      | `number`         | Items per page                   |
+| `currentPage`  | `string \| null` | Current cursor                   |
 
 ## Testing
 
