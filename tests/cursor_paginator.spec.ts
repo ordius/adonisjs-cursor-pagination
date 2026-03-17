@@ -350,6 +350,186 @@ test.group('Cursor Paginator - Edge Cases', (group) => {
     assert.isFalse(page.hasMorePages)
     assert.isNull(page.getNextCursor())
   })
+
+  test('should handle single item with multiple native order by columns', async ({ assert }) => {
+    await db.from('test_posts').delete()
+    await seedDatabase(db, 1)
+
+    const { TestPost } = getTestModels()
+
+    const page = await TestPost.query()
+      .orderBy('views', 'asc')
+      .orderBy('created_at', 'desc')
+      .cursorPaginate({
+        perPage: 5,
+      })
+
+    assert.equal(page.items().length, 1)
+    assert.isFalse(page.hasMorePages)
+    assert.isNull(page.getNextCursor())
+  })
+
+  test('should handle single item with combined order by columns from options and native', async ({
+    assert,
+  }) => {
+    await db.from('test_posts').delete()
+    await seedDatabase(db, 1)
+
+    const { TestPost } = getTestModels()
+
+    const page = await TestPost.query()
+      .orderBy('views', 'asc')
+      .cursorPaginate({
+        perPage: 5,
+        orderBy: { createdAt: 'desc' },
+      })
+
+    assert.equal(page.items().length, 1)
+    assert.isFalse(page.hasMorePages)
+    assert.isNull(page.getNextCursor())
+  })
+})
+
+test.group('Cursor Paginator - Multi-column Navigation', (group) => {
+  group.setup(async () => {
+    db = await createDatabase()
+    await createTables(db)
+    await seedDatabase(db, 25)
+  })
+
+  group.teardown(async () => {
+    await dropTables(db)
+    await cleanupDatabase(db)
+  })
+
+  test('should navigate forward and backward with multiple native order by columns', async ({
+    assert,
+  }) => {
+    const { TestPost } = getTestModels()
+
+    // First page
+    const firstPage = await TestPost.query()
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+    assert.isNotNull(firstPage.getNextCursor())
+    assert.isNull(firstPage.getPreviousCursor())
+
+    // Second page
+    const secondPage = await TestPost.query()
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 5)
+    assert.isTrue(secondPage.hasMorePages)
+    assert.isNotNull(secondPage.getNextCursor())
+    assert.isNotNull(secondPage.getPreviousCursor())
+
+    // No overlap
+    const firstIds = firstPage.items().map((p) => p.id)
+    const secondIds = secondPage.items().map((p) => p.id)
+    for (const id of secondIds) {
+      assert.notInclude(firstIds, id)
+    }
+
+    // Navigate back to first page
+    const backToFirst = await TestPost.query()
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5, secondPage.getPreviousCursor())
+
+    const backIds = backToFirst.items().map((p) => p.id)
+    assert.deepEqual(firstIds, backIds)
+  })
+
+  test('should navigate forward and backward with combined native and option order by columns', async ({
+    assert,
+  }) => {
+    const { TestPost } = getTestModels()
+
+    // First page - native orderBy(id) + option orderBy(createdAt)
+    const firstPage = await TestPost.query()
+      .orderBy('id', 'asc')
+      .cursorPaginate({
+        perPage: 5,
+        orderBy: { createdAt: 'asc' },
+      })
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+    assert.isNotNull(firstPage.getNextCursor())
+    assert.isNull(firstPage.getPreviousCursor())
+
+    // Second page
+    const secondPage = await TestPost.query()
+      .orderBy('id', 'asc')
+      .cursorPaginate({
+        perPage: 5,
+        cursor: firstPage.getNextCursor()!,
+        orderBy: { createdAt: 'asc' },
+      })
+
+    assert.equal(secondPage.items().length, 5)
+    assert.isTrue(secondPage.hasMorePages)
+    assert.isNotNull(secondPage.getNextCursor())
+    assert.isNotNull(secondPage.getPreviousCursor())
+
+    // No overlap
+    const firstIds = firstPage.items().map((p) => p.id)
+    const secondIds = secondPage.items().map((p) => p.id)
+    for (const id of secondIds) {
+      assert.notInclude(firstIds, id)
+    }
+
+    // Navigate back
+    const backToFirst = await TestPost.query()
+      .orderBy('id', 'asc')
+      .cursorPaginate({
+        perPage: 5,
+        cursor: secondPage.getPreviousCursor()!,
+        orderBy: { createdAt: 'asc' },
+      })
+
+    const backIds = backToFirst.items().map((p) => p.id)
+    assert.deepEqual(firstIds, backIds)
+  })
+
+  test('should maintain correct order with descending native order by on date column', async ({
+    assert,
+  }) => {
+    const { TestPost } = getTestModels()
+
+    const page = await TestPost.query()
+      .orderBy('created_at', 'desc')
+      .orderBy('id', 'desc')
+      .cursorPaginate(5)
+
+    assert.equal(page.items().length, 5)
+
+    // IDs should be in descending order (since created_at is sequential with id)
+    const ids = page.items().map((p) => p.id)
+    for (let i = 1; i < ids.length; i++) {
+      assert.isAbove(ids[i - 1], ids[i])
+    }
+
+    // Navigate to next page and verify continuation
+    const nextPage = await TestPost.query()
+      .orderBy('created_at', 'desc')
+      .orderBy('id', 'desc')
+      .cursorPaginate(5, page.getNextCursor())
+
+    assert.equal(nextPage.items().length, 5)
+
+    const nextIds = nextPage.items().map((p) => p.id)
+    // Next page IDs should all be smaller than first page IDs
+    const minFirstPageId = Math.min(...ids)
+    const maxNextPageId = Math.max(...nextIds)
+    assert.isAbove(minFirstPageId, maxNextPageId)
+  })
 })
 
 test.group('Cursor Paginator - Object-based API', (group) => {
