@@ -140,11 +140,18 @@ export async function cursorPaginateMacroFn(
   /**
    * Extract the ORDER BY statements from the query
    * NOTE: Currently only supports Knex (tested with PostgreSQL)
+   *
+   * For model queries, convert DB column names (snake_case) back to model
+   * attribute names (camelCase) so that cursor generation can correctly
+   * access model instance properties via `item[column]`.
    */
   const queryStatements = knexQueryInternal._statements
   queryStatements?.forEach((statement) => {
     if (statement.grouping === 'order' && statement.type === 'orderByBasic') {
-      mutableOrderByColumns[statement.value] = statement.direction
+      const columnKey = isModelQuery
+        ? this.model.$keys.columnsToAttributes.resolve(statement.value)
+        : statement.value
+      mutableOrderByColumns[columnKey] = statement.direction
     }
   })
 
