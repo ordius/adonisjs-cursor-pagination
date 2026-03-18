@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [1.0.6](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.5...v1.0.6) (2026-03-18)
+
+### 🐛 Bug Fixes
+
+* enhance cursor pagination to support table-prefixed ORDER BY columns ([cdfbae2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/cdfbae2d7338f17950b779c46fe97e9fd82672c2))
+
 ## [1.0.5](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.3...v1.0.5) (2026-03-17)
 
 ### 🐛 Bug Fixes
