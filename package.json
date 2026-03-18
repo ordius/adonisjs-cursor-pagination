@@ -1,6 +1,6 @@
 {
   "name": "@ordius/adonisjs-cursor-pagination",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Cursor-based pagination for AdonisJS Lucid ORM",
   "engines": {
     "node": ">=20.6.0"

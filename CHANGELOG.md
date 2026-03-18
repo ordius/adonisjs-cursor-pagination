@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [1.0.7](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.6...v1.0.7) (2026-03-18)
+
+### ✨ Features
+
+* add HasMany relation support and related tests for cursor paginator ([c8094c2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/c8094c257b5ba6fc5d56488ad77fa5b32c985836))
+
+### 🐛 Bug Fixes
+
+* implement ManyToMany relation support in cursor paginator and add related tests ([e162a30](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/e162a303cba9129feb7cd014410680a4177427fe))
+
 ## [1.0.6](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.5...v1.0.6) (2026-03-18)
 
 ### 🐛 Bug Fixes
