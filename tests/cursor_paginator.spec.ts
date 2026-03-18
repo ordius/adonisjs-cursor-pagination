@@ -619,3 +619,120 @@ test.group('Cursor Paginator - Object-based API', (group) => {
     assert.equal(page.items().length, 10)
   })
 })
+
+test.group('Cursor Paginator - Table-prefixed ORDER BY', (group) => {
+  group.setup(async () => {
+    db = await createDatabase()
+    await createTables(db)
+    await seedDatabase(db, 25)
+  })
+
+  group.teardown(async () => {
+    await dropTables(db)
+    await cleanupDatabase(db)
+  })
+
+  test('should navigate pages with table-prefixed orderBy columns', async ({ assert }) => {
+    const { TestPost } = getTestModels()
+
+    // First page — using table-prefixed column names
+    const firstPage = await TestPost.query()
+      .orderBy('test_posts.updated_at', 'asc')
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+    assert.isNotNull(firstPage.getNextCursor())
+
+    // Second page — cursor should contain real values, not null
+    const secondPage = await TestPost.query()
+      .orderBy('test_posts.updated_at', 'asc')
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 5)
+    assert.isTrue(secondPage.hasMorePages)
+
+    // No overlap between pages
+    const firstIds = firstPage.items().map((p) => p.id)
+    const secondIds = secondPage.items().map((p) => p.id)
+    for (const id of secondIds) {
+      assert.notInclude(firstIds, id)
+    }
+
+    // Second page IDs should be after first page
+    const maxFirstId = Math.max(...firstIds)
+    const minSecondId = Math.min(...secondIds)
+    assert.isAbove(minSecondId, maxFirstId)
+  })
+
+  test('should navigate backwards with table-prefixed orderBy columns', async ({ assert }) => {
+    const { TestPost } = getTestModels()
+
+    const firstPage = await TestPost.query().orderBy('test_posts.id', 'asc').cursorPaginate(5)
+
+    const secondPage = await TestPost.query()
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.isNotNull(secondPage.getPreviousCursor())
+
+    // Navigate back
+    const backToFirst = await TestPost.query()
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5, secondPage.getPreviousCursor())
+
+    const firstIds = firstPage.items().map((p) => p.id)
+    const backIds = backToFirst.items().map((p) => p.id)
+    assert.deepEqual(firstIds, backIds)
+  })
+
+  test('should handle table-prefixed orderBy with descending direction', async ({ assert }) => {
+    const { TestPost } = getTestModels()
+
+    const firstPage = await TestPost.query().orderBy('test_posts.id', 'desc').cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+
+    const ids = firstPage.items().map((p) => p.id)
+    for (let i = 1; i < ids.length; i++) {
+      assert.isAbove(ids[i - 1], ids[i])
+    }
+
+    const secondPage = await TestPost.query()
+      .orderBy('test_posts.id', 'desc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 5)
+    const secondIds = secondPage.items().map((p) => p.id)
+    // All second page IDs should be smaller than first page IDs
+    assert.isAbove(Math.min(...ids), Math.max(...secondIds))
+  })
+
+  test('should handle mixed table-prefixed and non-prefixed orderBy', async ({ assert }) => {
+    const { TestPost } = getTestModels()
+
+    // Mix: table-prefixed and unprefixed
+    const firstPage = await TestPost.query()
+      .orderBy('test_posts.created_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isNotNull(firstPage.getNextCursor())
+
+    const secondPage = await TestPost.query()
+      .orderBy('test_posts.created_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 5)
+
+    const firstIds = firstPage.items().map((p) => p.id)
+    const secondIds = secondPage.items().map((p) => p.id)
+    for (const id of secondIds) {
+      assert.notInclude(firstIds, id)
+    }
+  })
+})

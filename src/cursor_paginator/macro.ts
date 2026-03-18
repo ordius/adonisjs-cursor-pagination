@@ -144,14 +144,28 @@ export async function cursorPaginateMacroFn(
    * For model queries, convert DB column names (snake_case) back to model
    * attribute names (camelCase) so that cursor generation can correctly
    * access model instance properties via `item[column]`.
+   *
+   * Table-prefixed columns (e.g. "table.column") are stripped to the bare
+   * column name before resolution so that `columnsToAttributes` can find
+   * the mapping. The original SQL column name (with prefix) is stored in
+   * `attrToSqlColumnMap` and used for WHERE / ORDER BY clauses to avoid
+   * ambiguity in JOINed queries.
    */
+  const attrToSqlColumnMap: Record<string, string> = {}
   const queryStatements = knexQueryInternal._statements
   queryStatements?.forEach((statement) => {
     if (statement.grouping === 'order' && statement.type === 'orderByBasic') {
+      const sqlColumn = statement.value
+      let dbColumn = sqlColumn
+      // Strip table/alias prefix for attribute resolution (e.g. "products.updated_at" → "updated_at")
+      if (isModelQuery && dbColumn.includes('.')) {
+        dbColumn = dbColumn.split('.').pop()!
+      }
       const columnKey = isModelQuery
-        ? this.model.$keys.columnsToAttributes.resolve(statement.value)
-        : statement.value
+        ? this.model.$keys.columnsToAttributes.resolve(dbColumn)
+        : sqlColumn
       mutableOrderByColumns[columnKey] = statement.direction
+      attrToSqlColumnMap[columnKey] = sqlColumn
     }
   })
 
@@ -189,18 +203,19 @@ export async function cursorPaginateMacroFn(
     const apply = function (query: DatabaseQueryBuilder | ModelQueryBuilder, entryIndex: number) {
       if (entryIndex >= columnEntries.length || entryIndex >= cursorValues.length) return
 
-      const [column, direction] = columnEntries[entryIndex]
+      const [attrColumn, direction] = columnEntries[entryIndex]
+      const sqlCol = attrToSqlColumnMap[attrColumn] || attrColumn
       const value = cursorValues[entryIndex]
 
       query.where((subQuery: DatabaseQueryBuilder | ModelQueryBuilder) => {
         if (cursorData!.point_to_next) {
-          subQuery.where(column, direction === 'asc' ? '>' : '<', value)
+          subQuery.where(sqlCol, direction === 'asc' ? '>' : '<', value)
         } else {
-          subQuery.where(column, direction === 'asc' ? '<' : '>', value)
+          subQuery.where(sqlCol, direction === 'asc' ? '<' : '>', value)
         }
 
         if (entryIndex + 1 < columnEntries.length && entryIndex + 1 < cursorValues.length) {
-          subQuery.orWhere(column, value)
+          subQuery.orWhere(sqlCol, value)
           apply(subQuery, entryIndex + 1)
         }
       })
@@ -209,11 +224,12 @@ export async function cursorPaginateMacroFn(
     apply(this, 0)
   }
 
-  for (let [column, direction] of Object.entries(mutableOrderByColumns)) {
+  for (let [attrColumn, direction] of Object.entries(mutableOrderByColumns)) {
+    const sqlCol = attrToSqlColumnMap[attrColumn] || attrColumn
     if (normalizedCursor && !cloneCursorData.point_to_next) {
       direction = direction === 'asc' ? 'desc' : 'asc'
     }
-    this.orderBy(column, direction as 'asc' | 'desc')
+    this.orderBy(sqlCol, direction as 'asc' | 'desc')
   }
   perPage && this.limit(perPage + 1)
 
