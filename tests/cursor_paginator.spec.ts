@@ -14,6 +14,7 @@ import {
   createTables,
   dropTables,
   seedDatabase,
+  seedManyToManyData,
   cleanupDatabase,
   getTestModels,
 } from './helpers/setup.js'
@@ -734,5 +735,225 @@ test.group('Cursor Paginator - Table-prefixed ORDER BY', (group) => {
     for (const id of secondIds) {
       assert.notInclude(firstIds, id)
     }
+  })
+})
+
+test.group('Cursor Paginator - ManyToMany Relation', (group) => {
+  group.setup(async () => {
+    db = await createDatabase()
+    await createTables(db)
+    await seedManyToManyData(db)
+  })
+
+  group.teardown(async () => {
+    await dropTables(db)
+    await cleanupDatabase(db)
+  })
+
+  test('should paginate ManyToMany relation with table-prefixed orderBy', async ({ assert }) => {
+    const { TestTag } = getTestModels()
+
+    // Get the first tag (javascript, associated with 15 posts)
+    const tag = await TestTag.query().where('name', 'javascript').firstOrFail()
+
+    // First page via relation query with table-prefixed ORDER BY
+    const firstPage = await tag
+      .related('posts')
+      .query()
+      .select(['test_posts.id', 'test_posts.title', 'test_posts.updated_at'])
+      .orderBy('test_posts.updated_at', 'asc')
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5)
+
+    assert.instanceOf(firstPage, ModelCursorPaginator)
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+    assert.isNotNull(firstPage.getNextCursor())
+    assert.isNull(firstPage.getPreviousCursor())
+
+    // Verify cursor data is not null
+    const cursorDecoded = JSON.parse(
+      Buffer.from(firstPage.getNextCursor()!, 'base64').toString('utf-8')
+    )
+    for (const val of cursorDecoded.data) {
+      assert.isNotNull(val, 'Cursor value should not be null')
+      assert.isDefined(val, 'Cursor value should not be undefined')
+    }
+  })
+
+  test('should navigate all pages of ManyToMany relation', async ({ assert }) => {
+    const { TestTag } = getTestModels()
+
+    const tag = await TestTag.query().where('name', 'javascript').firstOrFail()
+    const allIds: number[] = []
+    let cursor: string | null = null
+    let pages = 0
+
+    while (true) {
+      pages++
+      const page = await tag
+        .related('posts')
+        .query()
+        .select(['test_posts.id', 'test_posts.title', 'test_posts.updated_at'])
+        .orderBy('test_posts.updated_at', 'asc')
+        .orderBy('test_posts.id', 'asc')
+        .cursorPaginate(5, cursor, { withTotal: false })
+
+      const items = page.items()
+      assert.isAbove(items.length, 0, `Page ${pages} should not be empty`)
+
+      for (const item of items) {
+        assert.notInclude(allIds, item.id, `Duplicate item id=${item.id} on page ${pages}`)
+        allIds.push(item.id)
+      }
+
+      if (!page.hasMorePages) break
+      cursor = page.getNextCursor()!
+      assert.isNotNull(cursor)
+
+      if (pages > 10) break // safety guard
+    }
+
+    // Total should be 15 (seeded for javascript tag)
+    assert.equal(allIds.length, 15)
+    assert.equal(new Set(allIds).size, 15, 'All items should be unique')
+  })
+
+  test('should navigate backwards in ManyToMany relation', async ({ assert }) => {
+    const { TestTag } = getTestModels()
+
+    const tag = await TestTag.query().where('name', 'javascript').firstOrFail()
+
+    // Page 1
+    const firstPage = await tag
+      .related('posts')
+      .query()
+      .select(['test_posts.id', 'test_posts.updated_at'])
+      .orderBy('test_posts.updated_at', 'asc')
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5)
+
+    // Page 2
+    const secondPage = await tag
+      .related('posts')
+      .query()
+      .select(['test_posts.id', 'test_posts.updated_at'])
+      .orderBy('test_posts.updated_at', 'asc')
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.isNotNull(secondPage.getPreviousCursor())
+
+    // Navigate back
+    const backToFirst = await tag
+      .related('posts')
+      .query()
+      .select(['test_posts.id', 'test_posts.updated_at'])
+      .orderBy('test_posts.updated_at', 'asc')
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5, secondPage.getPreviousCursor())
+
+    const firstIds = firstPage.items().map((p) => p.id)
+    const backIds = backToFirst.items().map((p) => p.id)
+    assert.deepEqual(firstIds, backIds)
+  })
+
+  test('should work with ManyToMany + where + whereNotNull', async ({ assert }) => {
+    const { TestTag } = getTestModels()
+
+    const tag = await TestTag.query().where('name', 'javascript').firstOrFail()
+
+    // Simulate the exact pattern from shop_controller: relation + select + where + whereNotNull + orderBy
+    const firstPage = await tag
+      .related('posts')
+      .query()
+      .select(['test_posts.id', 'test_posts.title', 'test_posts.updated_at', 'test_post_tags.note'])
+      .whereNotNull('test_post_tags.note')
+      .orderBy('test_posts.updated_at', 'asc')
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5, null, { withTotal: false })
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+
+    // Second page
+    const secondPage = await tag
+      .related('posts')
+      .query()
+      .select(['test_posts.id', 'test_posts.title', 'test_posts.updated_at', 'test_post_tags.note'])
+      .whereNotNull('test_post_tags.note')
+      .orderBy('test_posts.updated_at', 'asc')
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor(), { withTotal: false })
+
+    assert.equal(secondPage.items().length, 5)
+
+    // No overlap
+    const firstIds = firstPage.items().map((p) => p.id)
+    const secondIds = secondPage.items().map((p) => p.id)
+    for (const id of secondIds) {
+      assert.notInclude(firstIds, id)
+    }
+  })
+
+  test('should work with ManyToMany descending order', async ({ assert }) => {
+    const { TestTag } = getTestModels()
+
+    const tag = await TestTag.query().where('name', 'javascript').firstOrFail()
+
+    const firstPage = await tag
+      .related('posts')
+      .query()
+      .orderBy('test_posts.updated_at', 'desc')
+      .orderBy('test_posts.id', 'desc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+
+    // IDs should be in descending updated_at order
+    const timestamps = firstPage.items().map((p) => p.updatedAt.toMillis())
+    for (let i = 1; i < timestamps.length; i++) {
+      assert.isAtLeast(timestamps[i - 1], timestamps[i])
+    }
+
+    // Second page
+    const secondPage = await tag
+      .related('posts')
+      .query()
+      .orderBy('test_posts.updated_at', 'desc')
+      .orderBy('test_posts.id', 'desc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 5)
+
+    // Second page timestamps should be earlier than first page
+    const firstMin = Math.min(...timestamps)
+    const secondMax = Math.max(...secondPage.items().map((p) => p.updatedAt.toMillis()))
+    assert.isAtMost(secondMax, firstMin)
+  })
+
+  test('should handle ManyToMany with different tag (smaller set)', async ({ assert }) => {
+    const { TestTag } = getTestModels()
+
+    // typescript tag has 8 posts
+    const tag = await TestTag.query().where('name', 'typescript').firstOrFail()
+
+    const firstPage = await tag
+      .related('posts')
+      .query()
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+
+    const secondPage = await tag
+      .related('posts')
+      .query()
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 3) // 8 - 5 = 3
+    assert.isFalse(secondPage.hasMorePages)
   })
 })
