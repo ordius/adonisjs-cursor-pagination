@@ -74,6 +74,17 @@ export async function createDatabase(): Promise<Database> {
 export async function createTables(db: Database) {
   const knex = db.connection().getWriteClient()
 
+  // Create test_users table (must be before test_posts due to FK reference)
+  const hasUsersTable = await knex.schema.hasTable('test_users')
+  if (!hasUsersTable) {
+    await knex.schema.createTable('test_users', (table) => {
+      table.increments('id').primary()
+      table.string('name').notNullable()
+      table.string('email').unique().notNullable()
+      table.timestamps(true, true)
+    })
+  }
+
   // Create test_posts table
   const hasPostsTable = await knex.schema.hasTable('test_posts')
   if (!hasPostsTable) {
@@ -82,18 +93,14 @@ export async function createTables(db: Database) {
       table.string('title').notNullable()
       table.text('content').nullable()
       table.integer('views').defaultTo(0)
+      table
+        .integer('user_id')
+        .unsigned()
+        .nullable()
+        .references('id')
+        .inTable('test_users')
+        .onDelete('SET NULL')
       table.timestamps(true, true) // created_at and updated_at with default now
-    })
-  }
-
-  // Create test_users table
-  const hasUsersTable = await knex.schema.hasTable('test_users')
-  if (!hasUsersTable) {
-    await knex.schema.createTable('test_users', (table) => {
-      table.increments('id').primary()
-      table.string('name').notNullable()
-      table.string('email').unique().notNullable()
-      table.timestamps(true, true)
     })
   }
 
@@ -225,4 +232,44 @@ export async function seedManyToManyData(db: Database) {
  */
 export async function cleanupDatabase(db: Database) {
   await db.manager.closeAll()
+}
+
+/**
+ * Seeds HasMany data: creates users and associates them with posts
+ */
+export async function seedHasManyData(db: Database) {
+  await db.from('test_post_tags').delete()
+  await db.from('test_tags').delete()
+  await db.from('test_posts').delete()
+  await db.from('test_users').delete()
+
+  // Create 2 users
+  const users = [
+    { name: 'Alice', email: 'alice@test.com', created_at: new Date(), updated_at: new Date() },
+    { name: 'Bob', email: 'bob@test.com', created_at: new Date(), updated_at: new Date() },
+  ]
+  await db.table('test_users').multiInsert(users)
+
+  const insertedUsers = await db.from('test_users').select('id').orderBy('id', 'asc')
+
+  // Create 18 posts for Alice and 7 for Bob
+  const alicePosts = Array.from({ length: 18 }, (_, i) => ({
+    title: `Alice Post ${i + 1}`,
+    content: `Alice content ${i + 1}`,
+    views: (i + 1) * 10,
+    user_id: insertedUsers[0].id,
+    created_at: new Date(Date.now() - (18 - i) * 60000),
+    updated_at: new Date(Date.now() - (18 - i) * 60000),
+  }))
+
+  const bobPosts = Array.from({ length: 7 }, (_, i) => ({
+    title: `Bob Post ${i + 1}`,
+    content: `Bob content ${i + 1}`,
+    views: (i + 1) * 15,
+    user_id: insertedUsers[1].id,
+    created_at: new Date(Date.now() - (7 - i) * 60000),
+    updated_at: new Date(Date.now() - (7 - i) * 60000),
+  }))
+
+  await db.table('test_posts').multiInsert([...alicePosts, ...bobPosts])
 }

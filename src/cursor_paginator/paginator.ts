@@ -150,20 +150,10 @@ export class CursorPaginator<Result extends LucidRow = LucidRow>
         this.#previousCursor = null
       }
     } else {
-      if (currentCursor && !currentCursor.point_to_next) {
-        // this.rows.reverse() // (should) already reversed before init this class
-      }
-
       this.#nextCursor = this.#genCursor(orderByColumns, this.rows[this.rows.length - 1], true)
-      this.#previousCursor = null
-
-      if (!currentCursor) {
-        this.#nextCursor = this.#genCursor(orderByColumns, this.rows[this.rows.length - 1], true)
-        this.#previousCursor = null
-      } else {
-        this.#nextCursor = this.#genCursor(orderByColumns, this.rows[this.rows.length - 1], true)
-        this.#previousCursor = this.#genCursor(orderByColumns, this.rows[0], false)
-      }
+      this.#previousCursor = currentCursor
+        ? this.#genCursor(orderByColumns, this.rows[0], false)
+        : null
     }
   }
 

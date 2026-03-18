@@ -15,6 +15,7 @@ import {
   dropTables,
   seedDatabase,
   seedManyToManyData,
+  seedHasManyData,
   cleanupDatabase,
   getTestModels,
 } from './helpers/setup.js'
@@ -791,7 +792,9 @@ test.group('Cursor Paginator - ManyToMany Relation', (group) => {
 
     while (true) {
       pages++
-      const page = await tag
+      const page: import('../src/index.js').ModelCursorPaginatorContract<
+        import('./helpers/models.js').TestPost
+      > = await tag
         .related('posts')
         .query()
         .select(['test_posts.id', 'test_posts.title', 'test_posts.updated_at'])
@@ -955,5 +958,187 @@ test.group('Cursor Paginator - ManyToMany Relation', (group) => {
 
     assert.equal(secondPage.items().length, 3) // 8 - 5 = 3
     assert.isFalse(secondPage.hasMorePages)
+  })
+})
+
+test.group('Cursor Paginator - HasMany Relation', (group) => {
+  group.setup(async () => {
+    db = await createDatabase()
+    await createTables(db)
+    await seedHasManyData(db)
+  })
+
+  group.teardown(async () => {
+    await dropTables(db)
+    await cleanupDatabase(db)
+  })
+
+  test('should paginate HasMany relation', async ({ assert }) => {
+    const { TestUser } = getTestModels()
+
+    // Alice has 18 posts
+    const alice = await TestUser.query().where('name', 'Alice').firstOrFail()
+
+    const firstPage = await alice.related('posts').query().orderBy('id', 'asc').cursorPaginate(5)
+
+    assert.instanceOf(firstPage, ModelCursorPaginator)
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+    assert.isNotNull(firstPage.getNextCursor())
+    assert.isNull(firstPage.getPreviousCursor())
+
+    // All returned posts should belong to Alice
+    for (const post of firstPage.items()) {
+      assert.equal(post.userId, alice.id)
+    }
+  })
+
+  test('should navigate all pages of HasMany relation', async ({ assert }) => {
+    const { TestUser } = getTestModels()
+
+    const alice = await TestUser.query().where('name', 'Alice').firstOrFail()
+    const allIds: number[] = []
+    let cursor: string | null = null
+    let pages = 0
+
+    while (true) {
+      pages++
+      const page: import('../src/index.js').ModelCursorPaginatorContract<
+        import('./helpers/models.js').TestPost
+      > = await alice.related('posts').query().orderBy('id', 'asc').cursorPaginate(5, cursor)
+
+      for (const item of page.items()) {
+        assert.notInclude(allIds, item.id, `Duplicate id=${item.id} on page ${pages}`)
+        allIds.push(item.id)
+      }
+
+      if (!page.hasMorePages) break
+      cursor = page.getNextCursor()!
+      assert.isNotNull(cursor)
+      if (pages > 10) break // safety guard
+    }
+
+    // Alice has 18 posts → pages: 5+5+5+3
+    assert.equal(allIds.length, 18)
+    assert.equal(new Set(allIds).size, 18)
+  })
+
+  test('should navigate backwards in HasMany relation', async ({ assert }) => {
+    const { TestUser } = getTestModels()
+
+    const alice = await TestUser.query().where('name', 'Alice').firstOrFail()
+
+    const firstPage = await alice.related('posts').query().orderBy('id', 'asc').cursorPaginate(5)
+
+    const secondPage = await alice
+      .related('posts')
+      .query()
+      .orderBy('id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.isNotNull(secondPage.getPreviousCursor())
+
+    // Navigate back
+    const backToFirst = await alice
+      .related('posts')
+      .query()
+      .orderBy('id', 'asc')
+      .cursorPaginate(5, secondPage.getPreviousCursor())
+
+    const firstIds = firstPage.items().map((p) => p.id)
+    const backIds = backToFirst.items().map((p) => p.id)
+    assert.deepEqual(firstIds, backIds)
+  })
+
+  test('should scope HasMany to correct parent', async ({ assert }) => {
+    const { TestUser } = getTestModels()
+
+    // Bob has only 7 posts
+    const bob = await TestUser.query().where('name', 'Bob').firstOrFail()
+
+    const firstPage = await bob.related('posts').query().orderBy('id', 'asc').cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+
+    for (const post of firstPage.items()) {
+      assert.equal(post.userId, bob.id)
+    }
+
+    const secondPage = await bob
+      .related('posts')
+      .query()
+      .orderBy('id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 2) // 7 - 5 = 2
+    assert.isFalse(secondPage.hasMorePages)
+
+    for (const post of secondPage.items()) {
+      assert.equal(post.userId, bob.id)
+    }
+  })
+
+  test('should work with HasMany + table-prefixed orderBy', async ({ assert }) => {
+    const { TestUser } = getTestModels()
+
+    const alice = await TestUser.query().where('name', 'Alice').firstOrFail()
+
+    const firstPage = await alice
+      .related('posts')
+      .query()
+      .orderBy('test_posts.created_at', 'desc')
+      .orderBy('test_posts.id', 'desc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+
+    // Verify descending order
+    const ids = firstPage.items().map((p) => p.id)
+    for (let i = 1; i < ids.length; i++) {
+      assert.isAbove(ids[i - 1], ids[i])
+    }
+
+    // Second page
+    const secondPage = await alice
+      .related('posts')
+      .query()
+      .orderBy('test_posts.created_at', 'desc')
+      .orderBy('test_posts.id', 'desc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 5)
+
+    // No overlap
+    const secondIds = secondPage.items().map((p) => p.id)
+    for (const id of secondIds) {
+      assert.notInclude(ids, id)
+    }
+
+    // Second page IDs should all be smaller
+    assert.isAbove(Math.min(...ids), Math.max(...secondIds))
+  })
+
+  test('should work with HasMany + where clause', async ({ assert }) => {
+    const { TestUser } = getTestModels()
+
+    const alice = await TestUser.query().where('name', 'Alice').firstOrFail()
+
+    // Filter Alice's posts by views > 50 (views: 10,20,...,180 → 13 posts match)
+    const firstPage = await alice
+      .related('posts')
+      .query()
+      .where('views', '>', 50)
+      .orderBy('id', 'asc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+
+    for (const post of firstPage.items()) {
+      assert.isAbove(post.views, 50)
+      assert.equal(post.userId, alice.id)
+    }
   })
 })

@@ -7,8 +7,8 @@
  * file that was distributed with this source code.
  */
 
-import { BaseModel, column, manyToMany } from '@adonisjs/lucid/orm'
-import type { ManyToMany } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
 import { type DateTime } from 'luxon'
 
 /**
@@ -29,11 +29,19 @@ export class TestPost extends BaseModel {
   @column()
   declare views: number
 
+  @column()
+  declare userId: number | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  @belongsTo(() => TestUser, {
+    foreignKey: 'userId',
+  })
+  declare user: BelongsTo<typeof TestUser>
 }
 
 /**
@@ -88,4 +96,9 @@ export class TestUser extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  @hasMany(() => TestPost, {
+    foreignKey: 'userId',
+  })
+  declare posts: HasMany<typeof TestPost>
 }
