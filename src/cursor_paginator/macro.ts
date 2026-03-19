@@ -179,6 +179,39 @@ export async function cursorPaginateMacroFn(
     mutableOrderByColumns[column] = direction?.toString().toLowerCase() as 'asc' | 'desc'
   }
 
+  /**
+   * Auto-add ORDER BY columns to SELECT when explicit columns are specified.
+   * When users call `.select([...])` without including the ORDER BY columns,
+   * the cursor generator cannot read those values from the result rows,
+   * producing null cursors that break subsequent page fetches.
+   *
+   * We detect explicit column selections via Knex's _statements array
+   * (grouping: 'columns') and append any missing ORDER BY columns.
+   */
+  const columnStmts =
+    knexQueryInternal._statements?.filter((s: { grouping: string }) => s.grouping === 'columns') ||
+    []
+
+  if (columnStmts.length > 0) {
+    const selectedBareNames = new Set<string>()
+    for (const stmt of columnStmts) {
+      const values = Array.isArray(stmt.value) ? stmt.value : [stmt.value]
+      for (const v of values) {
+        if (typeof v === 'string') {
+          selectedBareNames.add(v.split('.').pop()!.toLowerCase())
+        }
+      }
+    }
+
+    for (const attrColumn of Object.keys(mutableOrderByColumns)) {
+      const sqlCol = attrToSqlColumnMap[attrColumn] || attrColumn
+      const bareName = sqlCol.split('.').pop()!.toLowerCase()
+      if (!selectedBareNames.has(bareName)) {
+        this.select(sqlCol)
+      }
+    }
+  }
+
   // Clear existing ORDER BY clauses to avoid conflicts
   this.clearOrder()
 

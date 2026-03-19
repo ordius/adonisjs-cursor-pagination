@@ -170,13 +170,15 @@ export class CursorPaginator<Result extends LucidRow = LucidRow>
       data: Object.keys(columns).map((column) => {
         // Try direct property access (works for model attributes via getter)
         let value = item[column as keyof Result]
+
         // Fallback: check $attributes (Lucid model internal store)
-        if (value === undefined && (item as any).$attributes) {
-          value = (item as any).$attributes[column]
+        if (value === undefined && item.$attributes) {
+          value = item.$attributes[column]
         }
+
         // Fallback: check $extras (pivot columns, computed columns)
-        if (value === undefined && (item as any).$extras) {
-          value = (item as any).$extras[column]
+        if (value === undefined && item.$extras) {
+          value = item.$extras[column]
         }
         return value
       }),

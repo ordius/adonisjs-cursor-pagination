@@ -1142,3 +1142,178 @@ test.group('Cursor Paginator - HasMany Relation', (group) => {
     }
   })
 })
+
+test.group('Cursor Paginator - Auto-select ORDER BY columns', (group) => {
+  group.setup(async () => {
+    db = await createDatabase()
+    await createTables(db)
+    await seedManyToManyData(db)
+  })
+
+  group.teardown(async () => {
+    await dropTables(db)
+    await cleanupDatabase(db)
+  })
+
+  test('should auto-add ORDER BY columns missing from explicit SELECT', async ({ assert }) => {
+    const { TestTag } = getTestModels()
+
+    const tag = await TestTag.query().where('name', 'javascript').firstOrFail()
+
+    // SELECT does NOT include updated_at, but ORDER BY uses it
+    const firstPage = await tag
+      .related('posts')
+      .query()
+      .select(['test_posts.id', 'test_posts.title'])
+      .orderBy('test_posts.updated_at', 'asc')
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+
+    // Cursor should NOT be null (updated_at was auto-added to SELECT)
+    const nextCursor = firstPage.getNextCursor()
+    assert.isNotNull(nextCursor)
+    const decoded = JSON.parse(Buffer.from(nextCursor!, 'base64').toString('utf-8'))
+    for (const val of decoded.data) {
+      assert.isNotNull(val, 'Cursor value should not be null')
+      assert.isDefined(val, 'Cursor value should not be undefined')
+    }
+
+    // Second page should NOT be empty
+    const secondPage = await tag
+      .related('posts')
+      .query()
+      .select(['test_posts.id', 'test_posts.title'])
+      .orderBy('test_posts.updated_at', 'asc')
+      .orderBy('test_posts.id', 'asc')
+      .cursorPaginate(5, nextCursor)
+
+    assert.equal(secondPage.items().length, 5)
+
+    // No overlap between pages
+    const firstIds = firstPage.items().map((p) => p.id)
+    const secondIds = secondPage.items().map((p) => p.id)
+    for (const id of secondIds) {
+      assert.notInclude(firstIds, id)
+    }
+  })
+
+  test('should traverse all pages when ORDER BY column is not in SELECT', async ({ assert }) => {
+    const { TestTag } = getTestModels()
+
+    const tag = await TestTag.query().where('name', 'javascript').firstOrFail()
+    const allIds: number[] = []
+    let cursor: string | null = null
+    let pages = 0
+
+    while (true) {
+      pages++
+      const page: import('../src/index.js').ModelCursorPaginatorContract<
+        import('./helpers/models.js').TestPost
+      > = await tag
+        .related('posts')
+        .query()
+        .select(['test_posts.id', 'test_posts.title'])
+        .orderBy('test_posts.updated_at', 'asc')
+        .orderBy('test_posts.id', 'asc')
+        .cursorPaginate(5, cursor, { withTotal: false })
+
+      const items = page.items()
+      assert.isAbove(items.length, 0, `Page ${pages} should not be empty`)
+
+      for (const item of items) {
+        assert.notInclude(allIds, item.id, `Duplicate id=${item.id} on page ${pages}`)
+        allIds.push(item.id)
+      }
+
+      if (!page.hasMorePages) break
+      cursor = page.getNextCursor()!
+      if (pages > 10) break
+    }
+
+    assert.equal(allIds.length, 15)
+    assert.equal(new Set(allIds).size, 15)
+  })
+
+  test('should not duplicate columns when ORDER BY column is already in SELECT', async ({
+    assert,
+  }) => {
+    const { TestPost } = getTestModels()
+
+    // SELECT already includes updated_at — auto-select should skip it
+    const firstPage = await TestPost.query()
+      .select(['id', 'title', 'updated_at'])
+      .orderBy('updated_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isNotNull(firstPage.getNextCursor())
+
+    const secondPage = await TestPost.query()
+      .select(['id', 'title', 'updated_at'])
+      .orderBy('updated_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 5)
+
+    const firstIds = firstPage.items().map((p) => p.id)
+    const secondIds = secondPage.items().map((p) => p.id)
+    for (const id of secondIds) {
+      assert.notInclude(firstIds, id)
+    }
+  })
+
+  test('should work with simple model query when ORDER BY column is not in SELECT', async ({
+    assert,
+  }) => {
+    const { TestPost } = getTestModels()
+
+    // SELECT only id and title, ORDER BY created_at
+    const firstPage = await TestPost.query()
+      .select(['id', 'title'])
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+
+    const secondPage = await TestPost.query()
+      .select(['id', 'title'])
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 5)
+
+    const firstIds = firstPage.items().map((p) => p.id)
+    const secondIds = secondPage.items().map((p) => p.id)
+    for (const id of secondIds) {
+      assert.notInclude(firstIds, id)
+    }
+  })
+
+  test('should not interfere when no explicit SELECT is used (SELECT *)', async ({ assert }) => {
+    const { TestPost } = getTestModels()
+
+    // No .select() call — default SELECT * should work as before
+    const firstPage = await TestPost.query()
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5)
+
+    assert.equal(firstPage.items().length, 5)
+    assert.isTrue(firstPage.hasMorePages)
+
+    const secondPage = await TestPost.query()
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
+      .cursorPaginate(5, firstPage.getNextCursor())
+
+    assert.equal(secondPage.items().length, 5)
+  })
+})
