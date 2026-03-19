@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [1.0.8](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.7...v1.0.8) (2026-03-19)
+
+### ✨ Features
+
+* auto-add missing ORDER BY columns to SELECT in cursor pagination ([a5fc795](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/a5fc795ddbf6b90fa05eaf3f2242dd36faa6930f))
+
 ## [1.0.7](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.6...v1.0.7) (2026-03-18)
 
 ### ✨ Features
