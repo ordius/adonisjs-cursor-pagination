@@ -69,7 +69,7 @@
     "@adonisjs/prettier-config": "^1.4.5",
     "@adonisjs/tsconfig": "^1.4.1",
     "@japa/assert": "^4.1.1",
-    "@japa/runner": "^4.4.0",
+    "@japa/runner": "^5.3.0",
     "@release-it/conventional-changelog": "^10.0.6",
     "@swc/core": "^1.15.18",
     "@types/luxon": "^3.7.1",
