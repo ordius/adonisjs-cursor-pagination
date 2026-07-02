@@ -4,7 +4,7 @@
 ![license](https://img.shields.io/npm/l/@ordius/adonisjs-cursor-pagination)
 ![downloads](https://img.shields.io/npm/dm/@ordius/adonisjs-cursor-pagination)
 
-Cursor-based pagination for AdonisJS v6 powered by Lucid ORM.
+Cursor-based pagination for AdonisJS v7 powered by Lucid ORM.
 
 Provides stable, performant pagination for large datasets with full support for Models and Database query builders.
 
@@ -40,9 +40,9 @@ Offset pagination might be more suitable.
 
 ## Requirements
 
-- AdonisJS v6
-- Lucid v21+
-- Node.js >= 20.11.0
+- AdonisJS v7
+- Lucid v22+
+- Node.js >= 24.0.0
 
 ## Installation
 
