@@ -4,90 +4,100 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [2.0.0](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.8...v2.0.0) (2026-07-02)
+
+### ✨ Features
+
+* add base64url encoding/decoding functions for cursor pagination ([959b481](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/959b481d9793f1bcb660b0f2bedfdbf608ed4543))
+
+### 🔧 Maintenance
+
+* update Node.js engine requirement and upgrade devDependencies ([c283f8d](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/c283f8d8dbf315e83974905e9399ab1083aabd48))
+
 ## [1.0.8](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.7...v1.0.8) (2026-03-19)
 
 ### ✨ Features
 
-* auto-add missing ORDER BY columns to SELECT in cursor pagination ([a5fc795](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/a5fc795ddbf6b90fa05eaf3f2242dd36faa6930f))
+- auto-add missing ORDER BY columns to SELECT in cursor pagination ([a5fc795](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/a5fc795ddbf6b90fa05eaf3f2242dd36faa6930f))
 
 ## [1.0.7](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.6...v1.0.7) (2026-03-18)
 
 ### ✨ Features
 
-* add HasMany relation support and related tests for cursor paginator ([c8094c2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/c8094c257b5ba6fc5d56488ad77fa5b32c985836))
+- add HasMany relation support and related tests for cursor paginator ([c8094c2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/c8094c257b5ba6fc5d56488ad77fa5b32c985836))
 
 ### 🐛 Bug Fixes
 
-* implement ManyToMany relation support in cursor paginator and add related tests ([e162a30](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/e162a303cba9129feb7cd014410680a4177427fe))
+- implement ManyToMany relation support in cursor paginator and add related tests ([e162a30](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/e162a303cba9129feb7cd014410680a4177427fe))
 
 ## [1.0.6](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.5...v1.0.6) (2026-03-18)
 
 ### 🐛 Bug Fixes
 
-* enhance cursor pagination to support table-prefixed ORDER BY columns ([cdfbae2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/cdfbae2d7338f17950b779c46fe97e9fd82672c2))
+- enhance cursor pagination to support table-prefixed ORDER BY columns ([cdfbae2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/cdfbae2d7338f17950b779c46fe97e9fd82672c2))
 
 ## [1.0.5](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.3...v1.0.5) (2026-03-17)
 
 ### 🐛 Bug Fixes
 
-* convert DB column names to model attribute names for cursor generation ([c33837d](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/c33837dfcf809d101d746131264b6f59dfd2f77b))
-* correct provider reference from '[@mixxtor](https://github.com/mixxtor)' to '[@ordius](https://github.com/ordius)' in configure hook ([b255f0c](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/b255f0c915778f73a370415739c7327b1136d8f4))
+- convert DB column names to model attribute names for cursor generation ([c33837d](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/c33837dfcf809d101d746131264b6f59dfd2f77b))
+- correct provider reference from '[@mixxtor](https://github.com/mixxtor)' to '[@ordius](https://github.com/ordius)' in configure hook ([b255f0c](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/b255f0c915778f73a370415739c7327b1136d8f4))
 
 ### 🧪 Tests
 
-* add multi-column navigation and order by tests for cursor paginator ([44724c0](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/44724c01d597a5910dc0e4b96ef503d50803b086))
+- add multi-column navigation and order by tests for cursor paginator ([44724c0](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/44724c01d597a5910dc0e4b96ef503d50803b086))
 
 ### 🔧 Maintenance
 
-* release v1.0.4 ([22c8cf3](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/22c8cf3f373d29902128d586f0b90c7d8c7e734f))
-* update package name and references from 'mixxtor' to 'ordius' ([ef5fb28](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/ef5fb2877aa4b7268529d6bc9ef81022faea4a4f))
-* update version to 1.0.3 and modify changelog for recent changes ([7b292f2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/7b292f2b0550c16f61ccb3b7cdbd2bcf5041d1b7))
+- release v1.0.4 ([22c8cf3](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/22c8cf3f373d29902128d586f0b90c7d8c7e734f))
+- update package name and references from 'mixxtor' to 'ordius' ([ef5fb28](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/ef5fb2877aa4b7268529d6bc9ef81022faea4a4f))
+- update version to 1.0.3 and modify changelog for recent changes ([7b292f2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/7b292f2b0550c16f61ccb3b7cdbd2bcf5041d1b7))
 
 ## [1.0.5](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.3...v1.0.5) (2026-03-17)
 
 ### 🐛 Bug Fixes
 
-* convert DB column names to model attribute names for cursor generation ([c33837d](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/c33837dfcf809d101d746131264b6f59dfd2f77b))
-* correct provider reference from '[@mixxtor](https://github.com/mixxtor)' to '[@ordius](https://github.com/ordius)' in configure hook ([b255f0c](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/b255f0c915778f73a370415739c7327b1136d8f4))
+- convert DB column names to model attribute names for cursor generation ([c33837d](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/c33837dfcf809d101d746131264b6f59dfd2f77b))
+- correct provider reference from '[@mixxtor](https://github.com/mixxtor)' to '[@ordius](https://github.com/ordius)' in configure hook ([b255f0c](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/b255f0c915778f73a370415739c7327b1136d8f4))
 
 ### 🧪 Tests
 
-* add multi-column navigation and order by tests for cursor paginator ([44724c0](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/44724c01d597a5910dc0e4b96ef503d50803b086))
+- add multi-column navigation and order by tests for cursor paginator ([44724c0](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/44724c01d597a5910dc0e4b96ef503d50803b086))
 
 ### 🔧 Maintenance
 
-* release v1.0.4 ([22c8cf3](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/22c8cf3f373d29902128d586f0b90c7d8c7e734f))
-* update package name and references from 'mixxtor' to 'ordius' ([ef5fb28](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/ef5fb2877aa4b7268529d6bc9ef81022faea4a4f))
-* update version to 1.0.3 and modify changelog for recent changes ([7b292f2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/7b292f2b0550c16f61ccb3b7cdbd2bcf5041d1b7))
+- release v1.0.4 ([22c8cf3](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/22c8cf3f373d29902128d586f0b90c7d8c7e734f))
+- update package name and references from 'mixxtor' to 'ordius' ([ef5fb28](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/ef5fb2877aa4b7268529d6bc9ef81022faea4a4f))
+- update version to 1.0.3 and modify changelog for recent changes ([7b292f2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/7b292f2b0550c16f61ccb3b7cdbd2bcf5041d1b7))
 
 ## [1.0.5](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.3...v1.0.5) (2026-03-17)
 
 ### 🐛 Bug Fixes
 
-* convert DB column names to model attribute names for cursor generation ([c33837d](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/c33837dfcf809d101d746131264b6f59dfd2f77b))
-* correct provider reference from '[@mixxtor](https://github.com/mixxtor)' to '[@ordius](https://github.com/ordius)' in configure hook ([b255f0c](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/b255f0c915778f73a370415739c7327b1136d8f4))
+- convert DB column names to model attribute names for cursor generation ([c33837d](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/c33837dfcf809d101d746131264b6f59dfd2f77b))
+- correct provider reference from '[@mixxtor](https://github.com/mixxtor)' to '[@ordius](https://github.com/ordius)' in configure hook ([b255f0c](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/b255f0c915778f73a370415739c7327b1136d8f4))
 
 ### 🧪 Tests
 
-* add multi-column navigation and order by tests for cursor paginator ([44724c0](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/44724c01d597a5910dc0e4b96ef503d50803b086))
+- add multi-column navigation and order by tests for cursor paginator ([44724c0](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/44724c01d597a5910dc0e4b96ef503d50803b086))
 
 ### 🔧 Maintenance
 
-* release v1.0.4 ([22c8cf3](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/22c8cf3f373d29902128d586f0b90c7d8c7e734f))
-* update package name and references from 'mixxtor' to 'ordius' ([ef5fb28](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/ef5fb2877aa4b7268529d6bc9ef81022faea4a4f))
-* update version to 1.0.3 and modify changelog for recent changes ([7b292f2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/7b292f2b0550c16f61ccb3b7cdbd2bcf5041d1b7))
+- release v1.0.4 ([22c8cf3](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/22c8cf3f373d29902128d586f0b90c7d8c7e734f))
+- update package name and references from 'mixxtor' to 'ordius' ([ef5fb28](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/ef5fb2877aa4b7268529d6bc9ef81022faea4a4f))
+- update version to 1.0.3 and modify changelog for recent changes ([7b292f2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/7b292f2b0550c16f61ccb3b7cdbd2bcf5041d1b7))
 
 ## [1.0.5](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.3...v1.0.5) (2026-03-17)
 
 ### 🐛 Bug Fixes
 
-* correct provider reference from '[@mixxtor](https://github.com/mixxtor)' to '[@ordius](https://github.com/ordius)' in configure hook ([b255f0c](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/b255f0c915778f73a370415739c7327b1136d8f4))
+- correct provider reference from '[@mixxtor](https://github.com/mixxtor)' to '[@ordius](https://github.com/ordius)' in configure hook ([b255f0c](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/b255f0c915778f73a370415739c7327b1136d8f4))
 
 ### 🔧 Maintenance
 
-* release v1.0.4 ([22c8cf3](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/22c8cf3f373d29902128d586f0b90c7d8c7e734f))
-* update package name and references from 'mixxtor' to 'ordius' ([ef5fb28](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/ef5fb2877aa4b7268529d6bc9ef81022faea4a4f))
-* update version to 1.0.3 and modify changelog for recent changes ([7b292f2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/7b292f2b0550c16f61ccb3b7cdbd2bcf5041d1b7))
+- release v1.0.4 ([22c8cf3](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/22c8cf3f373d29902128d586f0b90c7d8c7e734f))
+- update package name and references from 'mixxtor' to 'ordius' ([ef5fb28](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/ef5fb2877aa4b7268529d6bc9ef81022faea4a4f))
+- update version to 1.0.3 and modify changelog for recent changes ([7b292f2](https://github.com/mixxtor/adonisjs-cursor-pagination/commit/7b292f2b0550c16f61ccb3b7cdbd2bcf5041d1b7))
 
 ## [1.0.4](https://github.com/mixxtor/adonisjs-cursor-pagination/compare/v1.0.2...v1.0.4) (2026-03-13)
 
