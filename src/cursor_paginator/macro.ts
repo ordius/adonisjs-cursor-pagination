@@ -9,7 +9,7 @@
 
 import { DatabaseQueryBuilder } from '@adonisjs/lucid/database'
 import { ModelQueryBuilder, SnakeCaseNamingStrategy } from '@adonisjs/lucid/orm'
-import { CursorPaginator, ModelCursorPaginator } from './paginator.js'
+import { CursorPaginator, decodeBase64Url, ModelCursorPaginator } from './paginator.js'
 import type { TCursorData, TCursorPaginateOptions, TCursorPaginateParams } from './types.js'
 import type { LucidRow } from '@adonisjs/lucid/types/model'
 import { CursorSnakeCaseNamingStrategy } from './naming_strategies/snake_case.js'
@@ -216,9 +216,22 @@ export async function cursorPaginateMacroFn(
   this.clearOrder()
 
   const clonedOrderByColumns: typeof mutableOrderByColumns = { ...mutableOrderByColumns }
-  const cursorData = (
-    normalizedCursor ? JSON.parse(Buffer.from(normalizedCursor, 'base64').toString('utf-8')) : null
-  ) as TCursorData
+
+  /**
+   * Decode the cursor. Accepts both standard base64 and base64url formats
+   * for backward compatibility. Malformed cursors are treated as "no cursor"
+   * (returns the first page) rather than throwing an error.
+   */
+  let cursorData: TCursorData | null = null
+  if (normalizedCursor) {
+    try {
+      const decoded = decodeBase64Url(normalizedCursor)
+      cursorData = decoded ? JSON.parse(decoded) : null
+    } catch {
+      // Malformed cursor — fall back to first page
+      normalizedCursor = undefined
+    }
+  }
   const cloneCursorData = { ...cursorData }
 
   if (normalizedCursor) {
@@ -230,7 +243,7 @@ export async function cursorPaginateMacroFn(
      * deferred callbacks, subsequent calls would find an empty array and produce
      * no cursor WHERE conditions.
      */
-    const cursorValues = [...cursorData.data]
+    const cursorValues = cursorData?.data ? [...cursorData.data] : []
     const columnEntries = Object.entries(mutableOrderByColumns) as [string, 'asc' | 'desc'][]
 
     const apply = function (query: DatabaseQueryBuilder | ModelQueryBuilder, entryIndex: number) {

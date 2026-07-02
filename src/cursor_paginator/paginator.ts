@@ -23,6 +23,26 @@ import type {
 import { CursorCamelCaseNamingStrategy } from './naming_strategies/camel_case.js'
 
 /**
+ * Encode a string to URL-safe base64 (base64url).
+ * Uses `-` and `_` instead of `+` and `/`, no `=` padding.
+ * This prevents cursor corruption when passed as URL query parameters,
+ * since the `qs` library decodes `+` as space.
+ */
+function encodeBase64Url(data: string): string {
+  return Buffer.from(data).toString('base64url')
+}
+
+/**
+ * Decode a base64 or base64url string back to UTF-8.
+ * Accepts both standard base64 (`+`, `/`, `=`) and base64url (`-`, `_`).
+ */
+export function decodeBase64Url(encoded: string): string {
+  // Normalize base64url → standard base64 for decoding
+  const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/')
+  return Buffer.from(normalized, 'base64').toString('utf-8')
+}
+
+/**
  * Internal sortable columns type for runtime operations
  */
 type SortableColumnsInternal<Result extends LucidRow = LucidRow> = Record<
@@ -84,12 +104,12 @@ export class CursorPaginator<Result extends LucidRow = LucidRow>
   /**
    * The next cursor
    */
-  #nextCursor: string | undefined | null
+  #nextCursor: string | null = null
 
   /**
    * The previous cursor
    */
-  #previousCursor: string | undefined | null
+  #previousCursor: string | null = null
 
   /**
    * Constructs a new instance of the class.
@@ -117,11 +137,15 @@ export class CursorPaginator<Result extends LucidRow = LucidRow>
     this.isEmpty = this.rows.length === 0
     this.total = Number(this.totalNumber)
     this.hasTotal = this.total > 0
-    this.currentPage = currentCursor
-      ? Buffer.from(JSON.stringify(currentCursor)).toString('base64')
-      : null
+    this.currentPage = currentCursor ? encodeBase64Url(JSON.stringify(currentCursor)) : null
     this.#setCursor(this.orderByColumns, currentCursor)
-    this.hasPages = !!this.total
+    /**
+     * `hasPages` indicates whether the result set spans more than one page.
+     * Native Lucid `paginate()` computes this as `lastPage !== 1` (total-based).
+     * For cursor pagination, we derive it from `hasMorePages` or the presence
+     * of a previous cursor (meaning we're past page 1).
+     */
+    this.hasPages = this.hasMorePages || !!currentCursor
   }
 
   /**
@@ -184,7 +208,7 @@ export class CursorPaginator<Result extends LucidRow = LucidRow>
       }),
       point_to_next: pointToNext,
     }
-    return Buffer.from(JSON.stringify(cursor)).toString('base64')
+    return encodeBase64Url(JSON.stringify(cursor))
   }
 
   /**
@@ -264,7 +288,7 @@ export class CursorPaginator<Result extends LucidRow = LucidRow>
    * Returns the next cursor value based on the last row of the current set
    * of rows
    */
-  getNextCursor() {
+  getNextCursor(): string | null {
     return this.#nextCursor
   }
 
@@ -272,7 +296,7 @@ export class CursorPaginator<Result extends LucidRow = LucidRow>
    * Returns the previous cursor value based on the first row of the current
    * set of rows
    */
-  getPreviousCursor() {
+  getPreviousCursor(): string | null {
     return this.#previousCursor
   }
 
